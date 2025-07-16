@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>LRE 株価情報</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; margin: 0; }
+    h1 { text-align: center; margin-bottom: 30px; }
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 40px;
+      flex-wrap: wrap;
+    }
+    .left-panel { flex: 0 0 500px; display: flex; flex-direction: column; }
+    .right-panel { flex: 1 1 1000px; }
+    table {
+      border-collapse: collapse; width: 100%;
+    }
+    th, td {
+      padding: 10px; border: 1px solid #ccc; text-align: left;
+    }
+    th { background-color: #f0f0f0; }
+    select {
+      padding: 6px; font-size: 16px; margin-bottom: 10px;
+    }
+    #tv_chart_container { width: 100%; height: 600px; }
+    .panel-title { text-align: center; margin-bottom: 10px; }
+    #quoteNotice { margin-bottom: 10px; text-align: center; }
+    #quoteNotice button {
+      padding: 10px 20px; font-size: 16px; cursor: pointer;
+    }
+    .loader {
+      border: 6px solid #f3f3f3;
+      border-top: 6px solid #3498db;
+      border-radius: 50%;
+      width: 40px; height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto; display: none;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <h1>LRE（Lead Real Estate）株価とチャート</h1>
+  <div class="container">
+    <!-- 株価情報 -->
+    <div class="left-panel">
+      <h2 class="panel-title">株価情報</h2>
+      <div id="quoteNotice">
+        <button onclick="fetchQuote()">株価情報を取得する</button>
+      </div>
+      <div class="loader" id="loader"></div>
+      <table>
+        <tbody id="quoteTable">
+          <tr><th>現在の株価</th><td id="price">-</td></tr>
+          <tr><th>変動率</th><td id="changePercent">-</td></tr>
+          <tr><th>前日終値</th><td id="previousClose">-</td></tr>
+          <tr><th>日中高値</th><td id="dayHigh">-</td></tr>
+          <tr><th>日中安値</th><td id="dayLow">-</td></tr>
+          <tr><th>出来高</th><td id="volume">-</td></tr>
+          <tr><th>時価総額</th><td id="marketCap">-</td></tr>
+          <tr><th>52週高値</th><td id="yearHigh">-</td></tr>
+          <tr><th>52週安値</th><td id="yearLow">-</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- チャート -->
+    <div class="right-panel">
+      <h2 class="panel-title">ローソク足チャート</h2>
+      <label for="intervalSelect">時間軸: </label>
+      <select id="intervalSelect" onchange="updateChartInterval(this.value)">
+        <option value="60">1時間足</option>
+        <option value="240">4時間足</option>
+        <option value="D" selected>日足</option>
+        <option value="W">週足</option>
+        <option value="M">月足</option>
+      </select>
+      <div id="tv_chart_container"></div>
+    </div>
+  </div>
+
+  <!-- TradingView チャートと 株価取得ロジック -->
+  <script src="https://s3.tradingview.com/tv.js"></script>
+  <script>
+    const API_KEY = 'nlBgGuRM8Ho6H6IbqqKY7p5iV4tXezD0'; // ← FMP APIキー（必要なら置換）
+    const SYMBOL = 'LRE';
+
+    window.fetchQuote = function () {
+      document.getElementById("quoteNotice").innerHTML = "取得中...（数秒お待ちください）";
+      document.getElementById("loader").style.display = "block";
+
+      fetch(`https://financialmodelingprep.com/api/v3/quote/${SYMBOL}?apikey=${API_KEY}`)
+        .then(res => res.json())
+        .then(data => {
+          const quote = data[0];
+          if (!quote) throw new Error("データ取得失敗");
+
+          document.getElementById("price").textContent = `$${quote.price}`;
+          document.getElementById("changePercent").textContent = `${quote.changesPercentage?.toFixed(2)}%`;
+          document.getElementById("previousClose").textContent = `$${quote.previousClose}`;
+          document.getElementById("dayHigh").textContent = `$${quote.dayHigh}`;
+          document.getElementById("dayLow").textContent = `$${quote.dayLow}`;
+          document.getElementById("volume").textContent = `${quote.volume?.toLocaleString()} 株`;
+          document.getElementById("marketCap").textContent = `$${(quote.marketCap / 1e6).toFixed(1)}M`;
+          document.getElementById("yearHigh").textContent = `$${quote.yearHigh}`;
+          document.getElementById("yearLow").textContent = `$${quote.yearLow}`;
+
+          document.getElementById("loader").style.display = "none";
+          document.getElementById("quoteNotice").style.display = "none";
+        })
+        .catch(err => {
+          document.getElementById("loader").style.display = "none";
+          document.getElementById("quoteNotice").innerHTML =
+            `<div style="color:red;">取得エラー: ${err.message || err}<br>もう一度お試しください。</div>`;
+        });
+    };
+
+    let tvWidget;
+    function initChart(interval) {
+      document.getElementById('tv_chart_container').innerHTML = "";
+      tvWidget = new TradingView.widget({
+        container_id: "tv_chart_container",
+        width: "100%",
+        height: 600,
+        symbol: "NASDAQ:LRE",
+        interval: interval,
+        timezone: "Asia/Tokyo",
+        theme: "light",
+        style: "1",
+        locale: "ja",
+        toolbar_bg: "#f1f3f6",
+        enable_publishing: false,
+        allow_symbol_change: false,
+        hide_top_toolbar: false,
+        save_image: false,
+        autosize: true
+      });
+    }
+
+    function updateChartInterval(interval) {
+      initChart(interval);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      initChart("D");
+    });
+  </script>
+</body>
+</html>
