@@ -48,7 +48,6 @@
 <body>
   <h1>LRE（Lead Real Estate）株価とチャート</h1>
   <div class="container">
-    <!-- 株価情報 -->
     <div class="left-panel">
       <h2 class="panel-title">株価情報</h2>
       <div id="quoteNotice">
@@ -70,7 +69,6 @@
       </table>
     </div>
 
-    <!-- チャート -->
     <div class="right-panel">
       <h2 class="panel-title">ローソク足チャート</h2>
       <label for="intervalSelect">時間軸: </label>
@@ -85,10 +83,9 @@
     </div>
   </div>
 
-  <!-- TradingView チャートと 株価取得ロジック -->
   <script src="https://s3.tradingview.com/tv.js"></script>
   <script>
-    const API_KEY = 'nlBgGuRM8Ho6H6IbqqKY7p5iV4tXezD0'; // ← FMP APIキー（必要なら置換）
+    const API_KEY = 'nlBgGuRM8Ho6H6IbqqKY7p5iV4tXezD0';
     const SYMBOL = 'LRE';
 
     window.fetchQuote = function () {
